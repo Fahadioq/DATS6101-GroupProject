@@ -1,0 +1,69 @@
+---
+title: "Boston Listings Project"
+authors: "Fahad Aloqayli, , "
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r init, include=F}
+library(ggplot2)
+library(ezids)
+library(readr)
+library(dplyr)
+listings <- read_csv("listings.csv")
+
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(results="markup", warning = F, message = F)
+options(scientific=T, digits = 3) 
+```
+
+# Introduction 
+
+
+```{r}
+colnames(listings)
+sum(is.na(listings$neighbourhood_group))
+
+
+hist(listings$price, main = "Histogram of Listing Prices", xlab = "Listing Price")
+boxplot(listings$price, main = "Boxplot of Listing Prices", ylab = "Listing Price")
+
+
+listings_no_rm  <- outlierKD2(listings, price)               
+listings_clean  <- outlierKD2(listings, price, rm = TRUE)     
+
+```
+
+
+
+## Q1- How does the price per Boston listing on AirBnB differ by neighborhood from June 2024 to June 2025?
+
+
+
+
+## Q2- How do prices on AirBnB for Boston listings differ between listings for shared rooms versus entire homes in June 2024 to June 2025?
+
+
+
+## Q3- How do prices differ in Boston for AirBnB listings between geographic location, using the given latitude and longitude points, between June 2024 and June 2025?
+
+
+
+
+## Q4- Does the number of homes listed by a host impact the price of the AirBnB listing from June 2024 to June 2025?
+
+
+
+
+# Conclusion 
+
+
