@@ -1,3 +1,11 @@
+---
+title: "Question 4 ANOVA Testing"
+author: "Andrea Kambou"
+date: "2025-10-08"
+output: html_document
+---
+
+```{r}
 # Question 4
 
 # Load packages
@@ -57,3 +65,4 @@ summary_stats
 #ANOVA Testing
 anovaRes <- aov(price ~ host_category, data = listings_clean)
 summary(anovaRes)
+```
