@@ -1,0 +1,140 @@
+---
+title: "SMARTQ3_Mapping_and_ANOVA"
+author: "Amanda Mastran"
+date: "2025-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(sf)
+library(maps)
+library(ggplot2)
+library(readr)
+library(ezids)
+```
+
+# Load Data
+
+```{r}
+listings <- read_csv("listings.csv")
+list2 = outlierKD2(listings, price, rm = TRUE) # removing outliers
+#View(list2)
+list <- list2[,-5] #removing the empty column neighbourhood_group
+```
+
+
+# Creating Initial Map of Massachusets
+
+```{r}
+#creating function
+us_counties <- st_as_sf(
+  map("county", 
+      plot = FALSE, 
+      fill = TRUE))
+
+map_data_sf <- function(map_lev, region = ".", 
+                        exact = FALSE, crs = 4326){
+  maps::map(map_lev, region, exact = exact, 
+            plot = FALSE, 
+            fill = TRUE) %>%
+    sf::st_as_sf(crs = crs) %>%
+    separate(ID, c("region", "subregion"), 
+             sep = ",")
+}
+state_sf <- map_data_sf('county', 
+                        'massachusetts')
+ggplot(state_sf)+
+  geom_sf()
+```
+
+# Selecting Suffolk County 
+
+```{r}
+ggplot() +
+  geom_sf(data = state_sf) +
+  geom_sf(data=subset(state_sf,
+                      subregion == "suffolk"),
+          fill= '#1874CD') + 
+  labs(title="Map of Massachusetts",
+       subtitle = "Highlighting Suffolk County, where Boston is Located",
+       x = "Latitude", y = "Longitude")
+
+suffolk_sf <- subset(state_sf, subregion == "suffolk")
+
+ggplot(suffolk_sf) +
+  geom_sf(fill = "#B0E2FF") +
+  theme_minimal() + 
+  labs(title = "Map of Suffolk County",
+       subtitle = "Boston is Located Here",
+       x = "Latitude", y = "Longitude")
+```
+
+# Plotting our data by Latitude and Longitude
+
+```{r}
+df_sf <- st_as_sf(list, coords = c("longitude", "latitude"), crs = 4326) # crs defines points
+ggplot() +
+  geom_sf(data = suffolk_sf, fill = "lightgray") +
+  geom_sf(data = df_sf, color = "#104E8B", size = 2, alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Boston AirBnB Listings",
+       x = "Latitude", y="Longitude")
+```
+
+# Create regions within our data
+```{r}
+# separtating regions
+regions <- st_bbox(suffolk_sf) # st_bbox is sf function to create bounds
+regions
+regions$xmin
+#calculate the midpoints
+x_midpoint<- (regions$xmin + regions$xmax)/2
+x_midpoint
+y_midpoint<- (regions$ymin + regions$ymax)/2
+y_midpoint
+# plot midpoints
+ggplot() +
+  geom_sf(data = suffolk_sf, fill = "lightgray") +
+  geom_sf(data = df_sf, color = "#104E8B", size = 2, alpha = 0.7) +
+  geom_vline(xintercept = x_midpoint) + 
+  geom_hline(yintercept = y_midpoint) + 
+  theme_minimal() +
+  labs(title = "Boston AirBnB Listings",
+       x = "Latitude", y="Longitude")
+
+# create new variable for region
+list_wregion <- list %>%
+  mutate(
+    region = case_when(
+      latitude >= y_midpoint & longitude >= x_midpoint ~ "NE",
+      latitude >= y_midpoint & longitude <  x_midpoint ~ "NW",
+      latitude <  y_midpoint & longitude >= x_midpoint ~ "SE",
+      latitude <  y_midpoint & longitude <  x_midpoint ~ "SW"
+    )
+  )
+# View(list_wregion)
+```
+
+# EDA and Removing outliers
+
+```{r}
+ggplot(list_wregion, aes(x= region, y= price)) + geom_boxplot(color = "navy") + 
+  labs(title = "Price by Region Boxplot", x = "Region", y="Price")
+#outlierKD2(list_wregion, price) # we DO have outliers
+wregion_out = outlierKD2(list_wregion, price, rm = TRUE)
+```
+
+# ANOVA Testing
+
+H0: All prices are the same on average by region
+HA: At least one region differs in price on average
+
+```{r}
+region_aov = aov(price ~ region, data = wregion_out)
+summary(region_aov)
+```
+
+We reject the null hypothesis because p-value < alpha
