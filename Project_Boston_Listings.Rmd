@@ -46,7 +46,66 @@ listings_clean  <- outlierKD2(listings, price, rm = TRUE)
 
 
 ## Q1- How does the price per Boston listing on AirBnB differ by neighborhood from June 2024 to June 2025?
+```{r}
+listings_clean <- listings %>%
+  filter(!is.na(price), !is.na(neighbourhood))
 
+Q1 <- quantile(listings_clean$price, 0.25)
+Q3 <- quantile(listings_clean$price, 0.75)
+IQR_val <- Q3 - Q1
+
+listings_no_outliers <- listings_clean %>%
+  filter(price > (Q1 - 1.5 * IQR_val) & price < (Q3 + 1.5 * IQR_val))
+
+cat("Removed outliers:", nrow(listings_clean) - nrow(listings_no_outliers), "rows\n")
+
+
+
+ggplot(listings_no_outliers, aes(x = price)) +
+  geom_histogram(bins = 40, fill = "lightgreen", color = "black") +
+  labs(title = "Distribution of Airbnb Prices (Without Outliers)",
+       x = "Price (USD)", y = "Count") +
+  theme_minimal()
+
+
+ggplot(listings_no_outliers, aes(x = neighbourhood, y = price)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Airbnb Prices by Neighbourhood (No Outliers)",
+       x = "Neighbourhood", y = "Price (USD)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+
+listings_no_outliers$log_price <- log(listings_no_outliers$price)
+
+ggplot(listings_no_outliers, aes(x = neighbourhood, y = log_price)) +
+  geom_boxplot(fill = "#80b1d3", color = "black") +
+  labs(title = "Log(Price) by Neighbourhood (No Outliers)",
+       x = "Neighbourhood", y = "log(Price)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+mean_price_clean <- listings_no_outliers %>%
+  group_by(neighbourhood) %>%
+  summarise(mean_price = mean(price, na.rm = TRUE)) %>%
+  arrange(desc(mean_price))
+
+ggplot(mean_price_clean, aes(x = reorder(neighbourhood, mean_price), y = mean_price)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Average Airbnb Price by Neighbourhood (No Outliers)",
+       x = "Neighbourhood", y = "Average Price (USD)") +
+  theme_minimal()
+
+
+fit_clean <- aov(log_price ~ neighbourhood, data = listings_no_outliers)
+
+plot(fit_clean, which = 1, main = "Residuals vs Fitted (No Outliers)")
+qqnorm(residuals(fit_clean), main = "QQ-Plot of Residuals (No Outliers)")
+qqline(residuals(fit_clean), col = "red", lwd = 2)
+```
 
 
 
